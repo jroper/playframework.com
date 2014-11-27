@@ -104,10 +104,18 @@ object Application extends Controller with Common {
     playVersion = "(unknown)",
     scalaVersion = "(unknown)")
 
-  def changelog = Action { implicit request =>
-    Play.maybeApplication.flatMap(app => Option(app.classloader.getResourceAsStream("public/markdown/changelog.md"))).map { is =>
+  def changelog = markdownAction("public/markdown/changelog.md", { implicit request => html =>
+    views.html.changelog(html)
+  })
+  
+  def conduct = markdownAction("public/markdown/code-of-conduct.md", { implicit request => html =>
+    views.html.conduct(html)
+  })
+
+  def markdownAction(markdownFile: String, template: RequestHeader => Html => Html) = Action { implicit request =>
+    Play.maybeApplication.flatMap(app => Option(app.classloader.getResourceAsStream(markdownFile))).map { is =>
       try {
-        Ok(views.html.changelog(Html(Markdown.toHtml(IOUtils.toString(is), link => (link, link)))))
+        Ok(template(request)(Html(Markdown.toHtml(IOUtils.toString(is), link => (link, link)))))
           .withHeaders(CACHE_CONTROL -> "max-age=10000")
       } finally {
         is.close()
